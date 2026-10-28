@@ -997,7 +997,13 @@ async function fetchSport(sport,markets){
   return res.json();
 }
 
-function todayTR(){const n=new Date();const t=new Date(n.toLocaleString('en-US',{timeZone:'Europe/Istanbul'}));return t.toISOString().slice(0,10);}
+function todayTR(){
+  // en-CA formatı YYYY-MM-DD verir, timeZone ile TR gününü alırız
+  return new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Europe/Istanbul',
+    year:'numeric', month:'2-digit', day:'2-digit'
+  }).format(new Date());
+}
 
 async function loadLiveMatches(forceRefresh=false){
   const status=document.getElementById('liveStatus');
@@ -1023,14 +1029,15 @@ async function loadLiveMatches(forceRefresh=false){
   // Cache kontrolü
   if(!forceRefresh){
     const cached=await dbGetCache(cacheKey);
-    if(cached && cached.matches && cached.matches.length>0){
-      liveMatchesAll=cached.matches;
+    // dbGetCache {key, value} döndürür → veri cached.value içinde
+    if(cached && cached.value && Array.isArray(cached.value.matches) && cached.value.matches.length>0){
+      liveMatchesAll=cached.value.matches;
       liveOutcomeCache={};
       renderLiveMatches();
       status.innerText=`${liveMatchesAll.length} maç (önbellekten)`;
       refreshBtn.classList.remove('hidden');
       cacheInfo.classList.remove('hidden');
-      document.getElementById('cacheTime').innerText=new Date(cached.savedAt).toLocaleString('tr-TR');
+      document.getElementById('cacheTime').innerText=new Date(cached.value.savedAt).toLocaleString('tr-TR');
       return;
     }
     // Cache yoksa hiçbir şey yapma — kullanıcı butona basmalı
