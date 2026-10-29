@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Futbol Oran Analiz Aracı v6</title>
+  <title>Futbol Oran Analiz Aracı v7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -25,17 +25,6 @@
     ::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
     .tab-content.hidden { display:none; }
     .tab-btn.active { color:#22c55e; border-bottom:2px solid #22c55e; background:rgba(34,197,94,0.05); }
-    .odds-source-line { display:flex; justify-content:space-between; align-items:center; font-size:.8rem; padding:3px 0; border-top:1px solid #1e293b; }
-    .odds-source-line:first-of-type { border-top:none; }
-    .src-tag { font-size:.7rem; padding:1px 6px; border-radius:3px; font-weight:600; }
-    .src-pin { background:#0ea5e9; color:white; }
-    .src-avg { background:#f59e0b; color:#1a2332; }
-    .src-val { font-weight:700; color:#facc15; font-size:.9rem; }
-    .clickable-avg { cursor:pointer; }
-    .clickable-avg:hover { background:#1e293b; border-radius:3px; }
-    .outcomes { display:flex; flex-wrap:wrap; gap:8px; }
-    .outcome-block { flex:1; min-width:110px; background:#0f1720; border-radius:6px; padding:8px; }
-    .outcome-title { font-size:.75rem; color:#94a3b8; font-weight:600; margin-bottom:6px; text-align:center; }
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px; }
     .modal-box { background:#1a2332; border:1px solid #2d3748; border-radius:10px; max-width:520px; width:100%; max-height:80vh; display:flex; flex-direction:column; overflow:hidden; }
     .modal-header { padding:14px 16px; border-bottom:1px solid #2d3748; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
@@ -53,7 +42,6 @@
     .ci-badge { font-size:9px; padding:1px 4px; border-radius:3px; background:#1e293b; color:#94a3b8; border:1px solid #334155; margin-left:4px; }
     .quality-warn { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3); color:#fbbf24; padding:6px 10px; border-radius:6px; font-size:11px; }
 
-    /* --- Canlı maç kartı yeni tasarım --- */
     .match-card { background:linear-gradient(180deg,#0f172a 0%, #0b1220 100%); border:1px solid #334155; border-radius:14px; overflow:hidden; transition:border-color .2s, transform .2s; }
     .match-card:hover { border-color:#475569; }
     .match-head { padding:12px 14px 10px; border-bottom:1px solid #1e293b; }
@@ -79,6 +67,14 @@
     .quota-pill.ok { color:#4ade80; border-color:rgba(34,197,94,.4); }
     .quota-pill.low { color:#fbbf24; border-color:rgba(245,158,11,.4); }
     .quota-pill.out { color:#f87171; border-color:rgba(239,68,68,.4); }
+
+    /* Team search result card */
+    .team-result-card { background:linear-gradient(180deg,#0f172a 0%, #0b1220 100%); border:1px solid #334155; border-radius:12px; padding:12px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between; }
+    .team-result-card:hover { border-color:#475569; }
+    .ref-selector { display:flex; gap:6px; align-items:center; }
+    .ref-option { font-size:11px; padding:6px 10px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#94a3b8; cursor:pointer; transition:all .15s; }
+    .ref-option.selected { background:rgba(34,197,94,.15); border-color:#22c55e; color:#4ade80; font-weight:700; }
+    .ref-option:hover:not(.selected) { background:#111c30; }
   </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col pb-12">
@@ -90,7 +86,7 @@
         <i class="fa-solid fa-chart-line"></i>
       </div>
       <div>
-        <h1 class="font-black text-sm sm:text-lg text-white">Futbol Oran Analiz Aracı <span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full font-bold">v6 · Hobi</span></h1>
+        <h1 class="font-black text-sm sm:text-lg text-white">Futbol Oran Analiz Aracı <span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full font-bold">v7 · Hobi</span></h1>
         <p class="text-[10px] text-slate-400">Tarihsel frekans analizi + backtest · Yatırım/bahis tavsiyesi değildir</p>
       </div>
     </div>
@@ -198,46 +194,71 @@
 
 <!-- ================= TAB 3: MANUEL ANALİZ ================= -->
 <section id="tab-manual" class="tab-content hidden">
-  <div class="bg-darkcard border border-darkborder rounded-2xl p-4 mb-4 space-y-3">
-    <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-pen-to-square text-brand-500 mr-2"></i> Manuel Oran Girişi</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-      <div class="col-span-2">
-        <label class="block text-[10px] text-slate-400 mb-1">Maç / Etiket</label>
-        <input type="text" id="inputMatchName" value="Fenerbahçe - Galatasaray" class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-xs" />
+
+  <!-- Alt sekme başlıkları -->
+  <div class="flex gap-2 mb-4">
+    <button id="subtab-btn-team" onclick="switchManualSubtab('team')" class="manual-subtab-btn active bg-brand-600/20 border border-brand-500/50 text-brand-400 text-xs font-bold px-4 py-2 rounded-xl">
+      <i class="fa-solid fa-users mr-1"></i> Takım Adıyla Ara
+    </button>
+    <button id="subtab-btn-odds" onclick="switchManualSubtab('odds')" class="manual-subtab-btn bg-slate-800 border border-darkborder text-slate-300 text-xs font-bold px-4 py-2 rounded-xl">
+      <i class="fa-solid fa-keyboard mr-1"></i> Oran Girerek Ara
+    </button>
+  </div>
+
+  <!-- ===== ALT SEKME A: TAKIM ADIYLA ARA ===== -->
+  <div id="manual-subtab-team" class="manual-subtab-content">
+    <div class="bg-darkcard border border-darkborder rounded-2xl p-4 mb-4 space-y-3">
+      <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-users text-brand-500 mr-2"></i> Takım Adıyla Maç Ara</h2>
+      <p class="text-xs text-slate-400">Tek takım adı gir (örn: "Fenerbahçe", "Galatasaray", "Real Madrid"). API'den o takımın yaklaşan maçları listelenir.</p>
+      <div class="flex flex-wrap gap-2">
+        <input type="text" id="teamSearchInput" placeholder="Takım adı yaz..." class="flex-1 min-w-[200px] bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-sm" />
+        <button id="teamSearchBtn" onclick="searchTeamMatches()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-5 py-2 rounded-xl">
+          <i class="fa-solid fa-magnifying-glass mr-1"></i> Ara
+        </button>
       </div>
-      <div><label class="block text-[10px] font-bold text-emerald-400 mb-1">MS 1</label><input type="number" step="0.01" id="inputHomeOdds" value="2.10" class="w-full bg-slate-900 border border-emerald-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
-      <div><label class="block text-[10px] font-bold text-amber-400 mb-1">MS X</label><input type="number" step="0.01" id="inputDrawOdds" value="3.40" class="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
-      <div><label class="block text-[10px] font-bold text-blue-400 mb-1">MS 2</label><input type="number" step="0.01" id="inputAwayOdds" value="3.20" class="w-full bg-slate-900 border border-blue-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
-      <div><label class="block text-[10px] font-bold text-purple-400 mb-1">2.5 Üst (opsiyonel)</label><input type="number" step="0.01" id="inputOverOdds" value="1.75" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
-      <div class="flex items-end"><button onclick="runManualAnalysis()" class="w-full bg-gradient-to-r from-brand-600 to-emerald-500 text-white font-extrabold text-xs py-2 rounded-xl"><i class="fa-solid fa-bolt mr-1"></i> Analiz Et</button></div>
+      <div id="teamSearchStatus" class="text-[11px] text-slate-400"></div>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
-      <div>
-        <label class="block text-[10px] text-slate-400 mb-1"><span class="info-tip" data-tip="Hedef oranlara ne kadar yakın maçların eşleşeceğini belirler.">Oran Toleransı</span>:</label>
-        <div class="flex items-center gap-2"><input type="range" id="manualTolerance" min="0" max="25" step="0.5" value="5" class="flex-1 accent-brand-500" /><span id="manualToleranceVal" class="text-brand-400 font-mono font-bold text-right w-14">± %5.0</span></div>
+
+    <div id="teamSearchResults" class="space-y-3">
+      <div class="text-center text-slate-500 py-8 text-sm">Takım adı girip "Ara" butonuna bas.</div>
+    </div>
+  </div>
+
+  <!-- ===== ALT SEKME B: ORAN GİREREK ARA ===== -->
+  <div id="manual-subtab-odds" class="manual-subtab-content hidden">
+    <div class="bg-darkcard border border-darkborder rounded-2xl p-4 mb-4 space-y-3">
+      <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-keyboard text-brand-500 mr-2"></i> Oran Girerek Ara</h2>
+      <p class="text-xs text-slate-400">Hedef 1-X-2 oranlarını gir. Veri setlerindeki benzer oranlı maçlar taranır.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="col-span-2">
+          <label class="block text-[10px] text-slate-400 mb-1">Maç / Etiket</label>
+          <input type="text" id="inputMatchName" value="Fenerbahçe - Galatasaray" class="w-full bg-slate-900 border border-darkborder rounded-xl px-3 py-2 text-xs" />
+        </div>
+        <div><label class="block text-[10px] font-bold text-emerald-400 mb-1">MS 1</label><input type="number" step="0.01" id="inputHomeOdds" value="2.10" class="w-full bg-slate-900 border border-emerald-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
+        <div><label class="block text-[10px] font-bold text-amber-400 mb-1">MS X</label><input type="number" step="0.01" id="inputDrawOdds" value="3.40" class="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
+        <div><label class="block text-[10px] font-bold text-blue-400 mb-1">MS 2</label><input type="number" step="0.01" id="inputAwayOdds" value="3.20" class="w-full bg-slate-900 border border-blue-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
+        <div><label class="block text-[10px] font-bold text-purple-400 mb-1">2.5 Üst (opsiyonel)</label><input type="number" step="0.01" id="inputOverOdds" value="1.75" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-2.5 py-2 text-xs font-mono" /></div>
+        <div class="flex items-end"><button onclick="runManualAnalysis()" class="w-full bg-gradient-to-r from-brand-600 to-emerald-500 text-white font-extrabold text-xs py-2 rounded-xl"><i class="fa-solid fa-bolt mr-1"></i> Analiz Et</button></div>
       </div>
-      <div>
-        <label class="block text-[10px] text-slate-400 mb-1">Ülke / Lig:</label>
-        <select id="manualLeagueFilter" class="w-full bg-slate-800 border border-darkborder rounded-xl px-2 py-1.5 text-xs"><option value="ALL">Tüm Ülkeler</option></select>
-      </div>
-      <div>
-        <label class="block text-[10px] text-slate-400 mb-1"><span class="info-tip" data-tip="Kelly hesabı için referans kasa miktarı. Sadece matematiksel referans.">Referans Kasa</span>:</label>
-        <input type="number" id="inputBankroll" value="10000" class="w-full bg-slate-800 border border-darkborder rounded-lg px-2 py-1.5 text-xs text-emerald-400 font-mono" />
-      </div>
-      <div>
-        <label class="block text-[10px] text-slate-400 mb-1"><span class="info-tip" data-tip="Kelly formülünde ne kadar muhafazakâr olunacağı.">Kelly Riski</span>:</label>
-        <select id="inputKellyFraction" class="w-full bg-slate-800 border border-darkborder rounded-lg px-2 py-1.5 text-xs">
-          <option value="0.25" selected>1/4 Kelly (muhafazakâr)</option>
-          <option value="0.50">1/2 Kelly (orta)</option>
-          <option value="1.00">Tam Kelly (agresif)</option>
-        </select>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1"><span class="info-tip" data-tip="Hedef oranlara ne kadar yakın maçların eşleşeceğini belirler.">Oran Toleransı</span>:</label>
+          <div class="flex items-center gap-2"><input type="range" id="manualTolerance" min="0" max="25" step="0.5" value="5" class="flex-1 accent-brand-500" /><span id="manualToleranceVal" class="text-brand-400 font-mono font-bold text-right w-14">± %5.0</span></div>
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Ülke / Lig:</label>
+          <select id="manualLeagueFilter" class="w-full bg-slate-800 border border-darkborder rounded-xl px-2 py-1.5 text-xs"><option value="ALL">Tüm Ülkeler</option></select>
+        </div>
+        <div class="flex items-end text-[11px] text-slate-500">
+          <span><i class="fa-solid fa-info-circle mr-1"></i> Pinnacle veya sektör ortalaması seçimi için takım arama sonuçlarını kullanabilirsin.</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Dashboard -->
-  <div id="manualDashboard" class="space-y-4">
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+  <!-- Dashboard (her iki alt sekme için ortak) -->
+  <div id="manualDashboard" class="space-y-4 mt-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
       <div class="bg-darkcard p-3 rounded-xl border border-darkborder">
         <span class="text-[9px] text-slate-400 uppercase block info-tip" data-tip="Tolerans ve lig filtresine uyan geçmiş maç sayısı. 30'un altındaysa sonuçlar güvenilmez.">Eşleşen Maç</span>
         <h3 id="resMatchCount" class="text-xl font-black">0</h3>
@@ -263,14 +284,17 @@
         <h3 id="resOverProb" class="text-xl font-black text-purple-400">0%</h3>
         <span id="resOverCI" class="ci-badge">—</span>
       </div>
-      <div class="bg-darkcard p-3 rounded-xl border border-cyan-500/30">
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-darkcard border border-cyan-500/30 rounded-2xl p-4">
         <span class="text-[9px] text-cyan-400 uppercase block">KG Var</span>
         <h3 id="resBtsProb" class="text-xl font-black text-cyan-400">0%</h3>
         <span id="resBtsCI" class="ci-badge">—</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-darkcard border border-darkborder rounded-2xl p-4">
         <span class="text-[10px] text-slate-400 uppercase">Piyasa Olasılığı (Marj Arındırılmış)</span>
         <div class="space-y-1.5 text-xs mt-2">
@@ -289,13 +313,6 @@
           <div class="flex justify-between"><span>Dep:</span><span id="devA" class="font-bold">—</span></div>
         </div>
         <p class="stat-note mt-2">Pozitif değer = tarihsel frekans piyasadan yüksek. <b>Bu, "value" demek değildir.</b></p>
-      </div>
-
-      <div class="bg-darkcard border border-emerald-500/30 rounded-2xl p-4">
-        <span class="text-[10px] text-emerald-400 uppercase block">Kelly Referans (Bilgi Amaçlı)</span>
-        <h3 id="kellyStakeAmount" class="text-xl font-black mt-0.5">₺0.00</h3>
-        <span id="kellyPctBadge" class="text-[9px] text-emerald-400">Kasanın %0.0'ı</span>
-        <p class="stat-note mt-2">Kelly, <b>gerçek olasılık</b> bilindiğinde optimal bahis miktarını verir. <b>Yatırım tavsiyesi değildir.</b></p>
       </div>
     </div>
 
@@ -453,7 +470,7 @@
 // ==================================================================
 // 1) IndexedDB
 // ==================================================================
-const DB_NAME='futbol_analiz_v6', DB_VERSION=2;
+const DB_NAME='futbol_analiz_v7', DB_VERSION=2;
 let _db=null;
 function openDB(){return new Promise((res,rej)=>{
   if(_db)return res(_db);
@@ -693,23 +710,6 @@ function renderDashboard(results, target){
     el('devA').innerHTML=fmtDev(dA);
   }
 
-  const bankroll=parseFloat(el('inputBankroll')?.value)||10000;
-  const kf=parseFloat(el('inputKellyFraction')?.value)||0.25;
-  if(mk){
-    const options=[
-      {name:'Ev', prob:mk.probH, odds:target.home},
-      {name:'X', prob:mk.probD, odds:target.draw},
-      {name:'Dep', prob:mk.probA, odds:target.away}
-    ];
-    options.sort((a,b)=>b.prob-a.prob);
-    const best=options[0];
-    const b=best.odds-1, p=best.prob, q=1-p;
-    const fullKelly=Math.max(0,(p*b-q)/b);
-    const kellyPct=fullKelly*kf;
-    el('kellyStakeAmount').innerText=`₺${(bankroll*kellyPct).toFixed(2)}`;
-    el('kellyPctBadge').innerText=`Kasanın %${(kellyPct*100).toFixed(2)}'si (${best.name})`;
-  }
-
   let conf;
   if(total>=100)conf=90; else if(total>=50)conf=75; else if(total>=30)conf=55;
   else if(total>=15)conf=35; else if(total>=5)conf=20; else conf=10;
@@ -909,7 +909,6 @@ async function runAutoAnalysis(){
     const matched=runAnalysisEngine(rows,target,tol,'ALL');
     if(matched.length>0){
       const stats=computeStats(matched);
-      // en yakın eşleşme skoru
       const closestDiff=matched[0]?.diffScore??Infinity;
       results.push({match,target,matched,stats,closestDiff});
     }
@@ -917,7 +916,6 @@ async function runAutoAnalysis(){
 
   if(results.length===0){container.innerHTML=`<div class="text-center text-slate-500 py-8 text-sm">Eşleşme yok. Toleransı artırmayı dene.</div>`;return;}
 
-  // Sıralama
   if(sortMode==='closest') results.sort((a,b)=>a.closestDiff-b.closestDiff);
   else if(sortMode==='mostMatches') results.sort((a,b)=>b.matched.length-a.matched.length);
   else if(sortMode==='homeHigh') results.sort((a,b)=>b.stats.probH-a.stats.probH);
@@ -950,6 +948,8 @@ async function runAutoAnalysis(){
 
 function loadIntoManual(idx){
   const r=window._autoResults[idx]; if(!r)return;
+  // Oran girerek ara alt sekmesine geç
+  switchManualSubtab('odds');
   document.getElementById('inputMatchName').value=`${r.match.home_team} - ${r.match.away_team}`;
   document.getElementById('inputHomeOdds').value=r.target.home.toFixed(2);
   document.getElementById('inputDrawOdds').value=r.target.draw.toFixed(2);
@@ -989,7 +989,6 @@ async function fetchSport(sport,markets){
   url.searchParams.set("oddsFormat","decimal");
   url.searchParams.set("dateFormat","iso");
   const res=await fetch(url);
-  // quota header'ı oku
   const rem=res.headers.get('x-requests-remaining');
   if(rem!==null) setQuotaRemaining(parseInt(rem));
   if(res.status===422||res.status===404)return [];
@@ -998,7 +997,6 @@ async function fetchSport(sport,markets){
 }
 
 function todayTR(){
-  // en-CA formatı YYYY-MM-DD verir, timeZone ile TR gününü alırız
   return new Intl.DateTimeFormat('en-CA',{
     timeZone:'Europe/Istanbul',
     year:'numeric', month:'2-digit', day:'2-digit'
@@ -1026,10 +1024,8 @@ async function loadLiveMatches(forceRefresh=false){
   const today=todayTR();
   const cacheKey=`todayMatches_${today}`;
 
-  // Cache kontrolü
   if(!forceRefresh){
     const cached=await dbGetCache(cacheKey);
-    // dbGetCache {key, value} döndürür → veri cached.value içinde
     if(cached && cached.value && Array.isArray(cached.value.matches) && cached.value.matches.length>0){
       liveMatchesAll=cached.value.matches;
       liveOutcomeCache={};
@@ -1040,11 +1036,9 @@ async function loadLiveMatches(forceRefresh=false){
       document.getElementById('cacheTime').innerText=new Date(cached.value.savedAt).toLocaleString('tr-TR');
       return;
     }
-    // Cache yoksa hiçbir şey yapma — kullanıcı butona basmalı
     return;
   }
 
-  // API isteği
   status.innerText='API\'den maçlar çekiliyor...';
   container.innerHTML=`<div class="col-span-full text-center text-slate-400 py-12 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 block"></i> Maçlar çekiliyor... (10-20 saniye)</div>`;
   liveMatchesAll=[]; liveOutcomeCache={};
@@ -1091,7 +1085,6 @@ function buildLiveOdds(match){
   return result;
 }
 
-// --- YENİ canlı maç render (daha okunaklı kart tasarımı) ---
 function renderLiveMatches(){
   const container=document.getElementById('liveMatchesContainer');
   const q=(document.getElementById('liveSearch').value||'').toLowerCase();
@@ -1136,7 +1129,6 @@ function renderLiveMatches(){
         </div>
       </div>`:'';
 
-    // totals: 2.5 öncelikli, yoksa ilk point
     let totalsHtml='';
     const totalVals=Object.values(totals);
     if(totalVals.length){
@@ -1152,7 +1144,6 @@ function renderLiveMatches(){
       }
     }
 
-    // btts
     let bttsHtml='';
     const bttsVals=Object.values(btts);
     if(bttsVals.length){
@@ -1192,10 +1183,12 @@ function renderLiveMatches(){
 }
 
 function showSources(matchId, marketKey, name, point){
-  const ck=`${matchId}|${marketKey}|${name}|${point??''}`;
-  // liveOutcomeCache key yapısı: matchId|marketKey|name|point
   const keyCandidates=Object.keys(liveOutcomeCache).filter(k=>{
-    const [mid,mk,nm,pt]=k.split('|');
+    const parts=k.split('|');
+    const mid=parts[0], mk=parts[1];
+    // Name may contain '|' — reconstruct
+    const nm=parts.slice(2,parts.length-1).join('|');
+    const pt=parts[parts.length-1];
     return mid===matchId && mk===marketKey && nm===name && (pt||'')===(point||'');
   });
   if(keyCandidates.length){
@@ -1207,7 +1200,7 @@ function openOddsModal(data){
   const old=document.getElementById('oddsModal');if(old)old.remove();
   const modal=document.createElement('div');
   modal.id='oddsModal';modal.className='modal-overlay';
-  modal.innerHTML=`<div class="modal-box"><div class="modal-header"><div><div class="text-[11px] text-slate-400 uppercase">${data.leagueTitle}</div><div class="text-sm font-bold">${data.matchTitle}</div></div><button class="modal-close">✕</button></div><div class="modal-body"><table class="sources-table"><thead><tr><th>Kaynak</th><th>Oran</th></tr></thead><tbody>${data.sources.map(s=>`<tr><td>${s.title}${s.book==='pinnacle'?' <span class="src-tag src-pin">P</span>':''}</td><td class="modal-price">${s.price.toFixed(2)}</td></tr>`).join('')}<tr class="avg-row"><td><b>Ortalama (${data.sources.length})</b></td><td class="modal-price"><b>${data.avg.toFixed(2)}</b></td></tr></tbody></table></div></div>`;
+  modal.innerHTML=`<div class="modal-box"><div class="modal-header"><div><div class="text-[11px] text-slate-400 uppercase">${data.leagueTitle}</div><div class="text-sm font-bold">${data.matchTitle}</div></div><button class="modal-close">✕</button></div><div class="modal-body"><table class="sources-table"><thead><tr><th>Kaynak</th><th>Oran</th></tr></thead><tbody>${data.sources.map(s=>`<tr><td>${s.title}${s.book==='pinnacle'?' <span class="src-tag src-pin" style="background:#0ea5e9;color:white;padding:1px 6px;border-radius:3px;font-size:.7rem;font-weight:600">P</span>':''}</td><td class="modal-price">${s.price.toFixed(2)}</td></tr>`).join('')}<tr class="avg-row"><td><b>Ortalama (${data.sources.length})</b></td><td class="modal-price"><b>${data.avg.toFixed(2)}</b></td></tr></tbody></table></div></div>`;
   document.body.appendChild(modal);
   const close=()=>modal.remove();
   modal.querySelector('.modal-close').addEventListener('click',close);
@@ -1227,12 +1220,297 @@ async function analyzeSingleLiveMatch(match){
   const away=Object.values(h2h).find(o=>o.name===match.away_team);
   if(!home||!draw||!away){alert('Bu maçta 1-X-2 oranı yok.');return;}
   const target={home:home.pinnacle||home.avg, draw:draw.pinnacle||draw.avg, away:away.pinnacle||away.avg};
+  switchManualSubtab('odds');
   document.getElementById('inputMatchName').value=`${match.home_team} - ${match.away_team}`;
   document.getElementById('inputHomeOdds').value=target.home.toFixed(2);
   document.getElementById('inputDrawOdds').value=target.draw.toFixed(2);
   document.getElementById('inputAwayOdds').value=target.away.toFixed(2);
   switchTab('tab-manual');
   await runManualAnalysis();
+}
+
+// ==================================================================
+// MANUEL ALT SEKMELER + TAKIM ARAMA
+// ==================================================================
+let currentManualSubtab='team';
+function switchManualSubtab(sub){
+  currentManualSubtab=sub;
+  document.querySelectorAll('.manual-subtab-content').forEach(el=>el.classList.add('hidden'));
+  const target=document.getElementById('manual-subtab-'+sub);
+  if(target)target.classList.remove('hidden');
+  document.querySelectorAll('.manual-subtab-btn').forEach(btn=>{
+    btn.className='manual-subtab-btn bg-slate-800 border border-darkborder text-slate-300 text-xs font-bold px-4 py-2 rounded-xl';
+  });
+  const activeBtn=document.getElementById('subtab-btn-'+sub);
+  if(activeBtn){
+    activeBtn.className='manual-subtab-btn active bg-brand-600/20 border border-brand-500/50 text-brand-400 text-xs font-bold px-4 py-2 rounded-xl';
+  }
+}
+
+// Takım arama state
+let teamSearchResultsStore=[];
+let currentRefChoice='pinnacle'; // 'pinnacle' or 'avg'
+
+async function searchTeamMatches(){
+  const input=document.getElementById('teamSearchInput');
+  const status=document.getElementById('teamSearchStatus');
+  const resultsContainer=document.getElementById('teamSearchResults');
+  const query=(input.value||'').trim();
+
+  if(!query){
+    status.innerText='⚠️ Lütfen takım adı gir.';
+    status.className='text-[11px] text-amber-400';
+    return;
+  }
+
+  const apiKey=getApiKey();
+  if(!apiKey){
+    status.innerText='⚠️ API key gerekli. Sağ üstten ekle.';
+    status.className='text-[11px] text-rose-400';
+    return;
+  }
+
+  status.innerText='API\'den maçlar aranıyor...';
+  status.className='text-[11px] text-sky-400';
+  resultsContainer.innerHTML=`<div class="text-center text-slate-400 py-8 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 block"></i> Aranıyor...</div>`;
+
+  const qLower=query.toLowerCase();
+  const found=[];
+
+  // Tüm ligleri paralel değil sırayla tara (kota koruması)
+  for(const sport of SOCCER_SPORTS){
+    try{
+      const matches=await fetchSport(sport, MARKETS);
+      for(const m of matches){
+        const homeMatch=(m.home_team||'').toLowerCase().includes(qLower);
+        const awayMatch=(m.away_team||'').toLowerCase().includes(qLower);
+        if(homeMatch||awayMatch){
+          found.push(m);
+        }
+      }
+    }catch(e){console.warn(sport,e.message);}
+    await new Promise(r=>setTimeout(r,150));
+  }
+
+  if(found.length===0){
+    status.innerText=`"${query}" için yaklaşan maç bulunamadı.`;
+    status.className='text-[11px] text-amber-400';
+    resultsContainer.innerHTML=`<div class="text-center text-slate-500 py-8 text-sm">
+      <i class="fa-solid fa-magnifying-glass text-4xl mb-3 block opacity-40"></i>
+      <div>"${query}" için yaklaşan maç bulunamadı.</div>
+      <div class="text-[11px] mt-2 opacity-70">Takım adını farklı yazmayı dene (örn: "Fenerbahçe" yerine "Fenerbahce").</div>
+    </div>`;
+    return;
+  }
+
+  // Tarihe göre sırala
+  found.sort((a,b)=>new Date(a.commence_time)-new Date(b.commence_time));
+  teamSearchResultsStore=found;
+  status.innerText=`${found.length} maç bulundu.`;
+  status.className='text-[11px] text-emerald-400';
+
+  resultsContainer.innerHTML=found.map((m,idx)=>{
+    const timeStr=new Date(m.commence_time).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const bookCount=(m.bookmakers||[]).length;
+    return `<div class="team-result-card" id="team-result-${idx}">
+      <div class="flex-1 min-w-[200px]">
+        <div class="text-[10px] text-amber-400 uppercase font-bold"><i class="fa-solid fa-trophy mr-1"></i> ${m.sport_title}</div>
+        <div class="text-sm font-bold text-white mt-1">${m.home_team} <span class="text-slate-500 text-[10px]">VS</span> ${m.away_team}</div>
+        <div class="text-[11px] text-sky-400 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${timeStr} (TR)</div>
+        <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-building-columns mr-1"></i> ${bookCount} bahis sitesi</div>
+      </div>
+      <button class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl" onclick="fetchMatchOdds(${idx})">
+        <i class="fa-solid fa-download mr-1"></i> Oranları Getir
+      </button>
+    </div>`;
+  }).join('');
+}
+
+async function fetchMatchOdds(idx){
+  const match=teamSearchResultsStore[idx];
+  if(!match){alert('Maç bulunamadı.');return;}
+
+  // Eğer maç zaten bookmakers verisi içeriyorsa direkt işle
+  // Aksi takdirde sport odds endpoint'ini tekrar çekip maçı bul
+  let fullMatch=match;
+
+  // bookmakers boşsa veya h2h yoksa tekrar dene
+  const hasH2H=(m)=>{
+    if(!m.bookmakers||!m.bookmakers.length) return false;
+    return m.bookmakers.some(b=>(b.markets||[]).some(mk=>mk.key==='h2h'));
+  };
+
+  if(!hasH2H(fullMatch)){
+    // Tekrar fetch et
+    const sport=match.sport_key;
+    try{
+      const allMatches=await fetchSport(sport, MARKETS);
+      const found=allMatches.find(x=>x.id===match.id);
+      if(found) fullMatch=found;
+    }catch(e){console.warn('Yeniden çekme hatası:',e.message);}
+  }
+
+  const odds=buildLiveOdds(fullMatch);
+  const h2h=odds.h2h||{};
+  const home=Object.values(h2h).find(o=>o.name===fullMatch.home_team);
+  const draw=Object.values(h2h).find(o=>o.name==='Draw');
+  const away=Object.values(h2h).find(o=>o.name===fullMatch.away_team);
+
+  if(!home||!draw||!away){
+    alert('Bu maç için 1-X-2 oranı bulunamadı.');
+    return;
+  }
+
+  // Oranları göster + referans seçimi
+  renderOddsSelection(fullMatch, home, draw, away);
+}
+
+function renderOddsSelection(match, home, draw, away){
+  const container=document.getElementById('teamSearchResults');
+  // Arama sonuçlarını gizle, oran seçim ekranını göster
+  const detailsHtml=`
+    <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="text-[10px] text-amber-400 uppercase font-bold"><i class="fa-solid fa-trophy mr-1"></i> ${match.sport_title}</div>
+          <div class="text-base font-bold text-white mt-1">${match.home_team} - ${match.away_team}</div>
+          <div class="text-[11px] text-sky-400 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${new Date(match.commence_time).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'})} (TR)</div>
+        </div>
+        <button onclick="searchTeamMatches()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-darkborder">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Geri
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="bg-slate-900 p-2 rounded-xl">
+          <span class="text-[10px] text-emerald-400 block">Ev</span>
+          <span class="text-[11px] font-semibold block text-white mt-1">${match.home_team}</span>
+        </div>
+        <div class="bg-slate-900 p-2 rounded-xl">
+          <span class="text-[10px] text-amber-400 block">X</span>
+          <span class="text-[11px] font-semibold block text-white mt-1">Beraberlik</span>
+        </div>
+        <div class="bg-slate-900 p-2 rounded-xl">
+          <span class="text-[10px] text-blue-400 block">Dep</span>
+          <span class="text-[11px] font-semibold block text-white mt-1">${match.away_team}</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-[11px] font-semibold text-slate-300 mb-2"><i class="fa-solid fa-sliders mr-1 text-brand-400"></i> Referans Oran Seçimi</div>
+        <div class="ref-selector mb-3">
+          <div class="ref-option ${currentRefChoice==='pinnacle'?'selected':''}" onclick="selectRefChoice('pinnacle')">
+            <i class="fa-solid fa-star mr-1"></i> Pinnacle
+          </div>
+          <div class="ref-option ${currentRefChoice==='avg'?'selected':''}" onclick="selectRefChoice('avg')">
+            <i class="fa-solid fa-calculator mr-1"></i> Sektör Ortalaması
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-2 text-left">Oran Tipi</th>
+                <th class="p-2 text-center text-emerald-400">Ev (1)</th>
+                <th class="p-2 text-center text-amber-400">X</th>
+                <th class="p-2 text-center text-blue-400">Dep (2)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-darkborder/50">
+                <td class="p-2 font-semibold"><i class="fa-solid fa-star text-amber-400 mr-1 text-[10px]"></i>Pinnacle</td>
+                <td class="p-2 text-center font-mono font-bold text-white">${home.pinnacle?home.pinnacle.toFixed(2):'—'}</td>
+                <td class="p-2 text-center font-mono font-bold text-white">${draw.pinnacle?draw.pinnacle.toFixed(2):'—'}</td>
+                <td class="p-2 text-center font-mono font-bold text-white">${away.pinnacle?away.pinnacle.toFixed(2):'—'}</td>
+              </tr>
+              <tr class="border-t border-darkborder/50 bg-slate-900/40">
+                <td class="p-2 font-semibold"><i class="fa-solid fa-calculator text-sky-400 mr-1 text-[10px]"></i>Sektör Ort. <span class="text-[9px] text-slate-500">(${home.avgCount||0} site)</span></td>
+                <td class="p-2 text-center font-mono font-bold text-brand-400">${home.avg?home.avg.toFixed(2):'—'}</td>
+                <td class="p-2 text-center font-mono font-bold text-brand-400">${draw.avg?draw.avg.toFixed(2):'—'}</td>
+                <td class="p-2 text-center font-mono font-bold text-brand-400">${away.avg?away.avg.toFixed(2):'—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="showOddsSourcesDetail()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-darkborder">
+          <i class="fa-solid fa-list mr-1"></i> Tüm Kaynaklar
+        </button>
+        <button onclick="analyzeWithSelectedRef()" class="bg-gradient-to-r from-brand-600 to-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl">
+          <i class="fa-solid fa-bolt mr-1"></i> Seçili Referansla Analiz Et
+        </button>
+      </div>
+    </div>
+  `;
+  container.innerHTML=detailsHtml;
+  window._currentMatchOddsData={match, home, draw, away};
+}
+
+function selectRefChoice(choice){
+  currentRefChoice=choice;
+  document.querySelectorAll('.ref-option').forEach(el=>{
+    el.classList.toggle('selected', el.textContent.toLowerCase().includes(choice==='pinnacle'?'pinnacle':'sektör'));
+  });
+}
+
+function showOddsSourcesDetail(){
+  const data=window._currentMatchOddsData;
+  if(!data)return;
+  const {match}=data;
+  // liveOutcomeCache'ten h2h kaynaklarını bul
+  const key=Object.keys(liveOutcomeCache).find(k=>{
+    const parts=k.split('|');
+    const mid=parts[0], mk=parts[1];
+    const nm=parts.slice(2,parts.length-1).join('|');
+    return mid===match.id && mk==='h2h' && nm===match.home_team;
+  });
+  if(key){
+    openOddsModal(liveOutcomeCache[key]);
+  } else {
+    alert('Kaynak detayı bulunamadı.');
+  }
+}
+
+async function analyzeWithSelectedRef(){
+  const data=window._currentMatchOddsData;
+  if(!data)return;
+  const {match, home, draw, away}=data;
+  const ref=currentRefChoice;
+
+  const pickOdds=(o)=>{
+    if(ref==='pinnacle') return o.pinnacle||o.avg;
+    return o.avg||o.pinnacle;
+  };
+
+  const target={
+    home: pickOdds(home),
+    draw: pickOdds(draw),
+    away: pickOdds(away)
+  };
+
+  if(!(target.home>1&&target.draw>1&&target.away>1)){
+    alert('Seçili referans için yeterli oran verisi yok.');
+    return;
+  }
+
+  // Manuel analiz (oran) alt sekmesine geç ve doldur
+  switchManualSubtab('odds');
+  document.getElementById('inputMatchName').value=`${match.home_team} - ${match.away_team}`;
+  document.getElementById('inputHomeOdds').value=target.home.toFixed(2);
+  document.getElementById('inputDrawOdds').value=target.draw.toFixed(2);
+  document.getElementById('inputAwayOdds').value=target.away.toFixed(2);
+
+  // Analizi çalıştır
+  await runManualAnalysis();
+
+  // Sonuçlara kaydır
+  setTimeout(()=>{
+    const dash=document.getElementById('manualDashboard');
+    if(dash) dash.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 200);
 }
 
 // ==================================================================
@@ -1316,23 +1594,17 @@ document.getElementById('csvUploadInput')?.addEventListener('change',async e=>{
 // ==================================================================
 // SEKMELER + SCROLL KORUMA + TOOLTIP + BAŞLATMA
 // ==================================================================
-// Her sekme için scroll pozisyonu
 const tabScrollPositions={ 'tab-live':0,'tab-auto':0,'tab-manual':0,'tab-backtest':0,'tab-datasets':0 };
 let currentTab='tab-live';
 
 function switchTab(tabId){
-  // Mevcut scroll'u kaydet
   tabScrollPositions[currentTab]=window.scrollY;
-
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const t=document.getElementById(tabId);if(t)t.classList.remove('hidden');
   const btn=document.getElementById('tab-btn-'+tabId.replace('tab-',''));if(btn)btn.classList.add('active');
   if(tabId==='tab-datasets')renderDatasetsList();
-
   currentTab=tabId;
-
-  // Yeni sekmenin scroll pozisyonuna dön (kısa gecikme DOM'un yerleşmesi için)
   requestAnimationFrame(()=>{
     const y=tabScrollPositions[tabId]||0;
     window.scrollTo({top:y, behavior:'instant'});
@@ -1340,16 +1612,21 @@ function switchTab(tabId){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  // Tolerance slider'ları
   ['autoTolerance','manualTolerance','btTolerance'].forEach(id=>{
     const s=document.getElementById(id), v=document.getElementById(id+'Val');
     if(s&&v)s.addEventListener('input',e=>v.innerText=`± %${parseFloat(e.target.value).toFixed(1)}`);
   });
-  document.getElementById('liveLoadBtn').addEventListener('click',()=>loadLiveMatches(true)); // buton API'den çeker
+
+  // Canlı maç butonları
+  document.getElementById('liveLoadBtn').addEventListener('click',()=>loadLiveMatches(true));
   document.getElementById('liveRefreshBtn').addEventListener('click',()=>{
     if(confirm('Maçlar API\'den yeniden çekilecek (kota harcanır). Devam?'))loadLiveMatches(true);
   });
   document.getElementById('liveSearch').addEventListener('input',renderLiveMatches);
   document.getElementById('liveFilterLive').addEventListener('change',renderLiveMatches);
+
+  // Manuel tablo arama
   document.getElementById('manualTableSearch').addEventListener('input',()=>{
     const target={home:parseFloat(document.getElementById('inputHomeOdds').value)||1.01,draw:parseFloat(document.getElementById('inputDrawOdds').value)||1.01,away:parseFloat(document.getElementById('inputAwayOdds').value)||1.01};
     getSelectedDatasetRows().then(rows=>{
@@ -1360,6 +1637,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       const filtered=search?matched.filter(r=>r.match.HomeTeam.toLowerCase().includes(search)||r.match.AwayTeam.toLowerCase().includes(search)):matched;
       renderTable(filtered);
     });
+  });
+
+  // Takım arama: Enter tuşu
+  document.getElementById('teamSearchInput').addEventListener('keydown',e=>{
+    if(e.key==='Enter') searchTeamMatches();
   });
 
   // Tooltip
@@ -1380,7 +1662,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(el&&el._tip){el._tip.remove();el._tip=null;}
   });
 
-  // Eski günlerin cache'ini temizle
+  // Cache temizliği (eski günler)
   openDB().then(db=>{
     const tx=db.transaction('cache','readwrite');
     const store=tx.objectStore('cache');
@@ -1388,7 +1670,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     req.onsuccess=()=>{
       const todayKey='todayMatches_'+todayTR();
       (req.result||[]).forEach(k=>{
-        if(k.startsWith('todayMatches_') && k!==todayKey){store.delete(k);}
+        if(typeof k==='string' && k.startsWith('todayMatches_') && k!==todayKey){store.delete(k);}
       });
     };
   }).catch(()=>{});
@@ -1397,10 +1679,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   updateQuotaPill();
   renderDatasetsList();
 
-  // Sayfa açılışında: cache'te bugünün maçları varsa onları göster (API'ye gitme)
+  // Manuel alt sekme başlangıç
+  switchManualSubtab('team');
+
+  // Sayfa açılışında cache kontrolü
   loadLiveMatches(false).catch(e=>console.warn('Cache kontrolü:',e));
 
-  // Başlangıç scroll konumu
   tabScrollPositions['tab-live']=0;
 });
 </script>
